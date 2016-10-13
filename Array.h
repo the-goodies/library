@@ -260,8 +260,8 @@ public:
 		}
 	}
 
-	// add move type element to the end
-	void add(type el)
+	// insert move type element to the end
+	void insert(type el)
 	{
 		if (count == capacity)
 		{
@@ -270,12 +270,12 @@ public:
 		new(data + count++) type(std::move(el));
 	}
 
-	// add type element to the specified position
-	void add(type el, s64 position)
+	// insert type element to the specified position
+	void insert(type el, s64 position)
 	{
 		if (position < 0 || position > count)
 		{
-			ERROR("%s (size %I64u) can't add element to %I64u position - out of range", typeid(*this).name(), this->count, position);
+			ERROR("%s (size %I64u) can't insert element to %I64u position - out of range", typeid(*this).name(), this->count, position);
 		}
 		if (capacity == count) expandCapacity();
 
@@ -330,7 +330,7 @@ public:
 		Array<type> result;
 		for (s64 i = start; i < end; ++i)
 		{
-			result.add(this->data[i]);
+			result.insert(this->data[i]);
 		}
 		return result;
 	}
