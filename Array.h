@@ -295,9 +295,9 @@ public:
 	}
 
 	// removes type element at specified position
-	// ordered preserves order, but removal is slower, having to transfer majority of elements: [1, 2, 3, 4] remove from pos 1 -> [1, 3, 4]
-	// not ordered (default), moves last element to the place of removal, making it very fast removal: [1, 2, 3, 4] remove from pos 1 -> [1, 4, 3] 
-	void remove(s64 position, bool ordered = false)
+	// ordered preserves order (default), but removal is slower, having to transfer majority of elements: [1, 2, 3, 4] remove from pos 1 -> [1, 3, 4]
+	// not ordered, moves last element to the place of removal, making it very fast removal: [1, 2, 3, 4] remove from pos 1 -> [1, 4, 3] 
+	void remove(s64 position, bool ordered = true)
 	{
 		if (position < 0 || position >= count)
 		{
