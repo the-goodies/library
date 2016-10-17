@@ -14,6 +14,7 @@ typedef std::uint16_t u16;
 typedef std::uint32_t u32;
 typedef std::uint64_t u64;
 
+#define ERROR(MESSAGE, ...) error(__FILE__, __LINE__, MESSAGE, __VA_ARGS__)
 
 template <typename type>
 class Queue
@@ -30,26 +31,37 @@ class Queue
 
 	// private functions
 
+void destructInternalData()
+{
+	s64 count = this->size();
+	for (s64 i = 0; i < count; ++i)
+	{
+		data[(back + i) % capacity].~type();
+	}
+}
+
 void expandCapacity()
 {
 	type *new_data = (type*) malloc(capacity * 2 * sizeof(type));
 	if (new_data == nullptr)
 	{
-		error("Failed to allocate memory to expand Queue container");
+		ERROR("Failed to allocate memory to expand Queue container");
 	}
-	for (s64 i = back; i < capacity; ++i)
+	s64 count = this->size();
+	for (s64 i = 0; i < count; ++i)
 	{
-		new(new_data + i - back) type(std::move(data[i]));
-	}
-	for (s64 i = 0; i < front; ++i)
-	{
-		new(new_data + i + (capacity - back)) type(std::move(data[i]));
+		new(new_data + i) type(std::move(data[(back + i) % capacity]));
 	}
 	// just in case objects being moved only have copy constructor, so we have to explicitly destruct them afterwards
 	destructInternalData();
 	free(data);
+
+	this->front = 0;
+	this->back = count;
+	this->capacity *= 2;
 	data = new_data;
 }
+
 
 
 public:
@@ -60,63 +72,126 @@ public:
 		data = (type*) malloc(capacity * sizeof(type));
 		if (data == nullptr)
 		{
-			error("Failed to allocate memory to construct Queue container");
+			ERROR("Failed to allocate memory to construct Queue container");
 		}
-		count = 0;
+		back = front = 0;
 	}
 
-	Queue(s64 capacity)
+	~Queue()
 	{
-		if (capacity <= 0)
-		{
-			error("Queue constructor failed, given non positive as capacity, has to be >= 1");
-		}
-		this->capacity = capacity;
-		data = (type*) malloc(capacity * sizeof(type));
-		if (data == nullptr)
-		{
-			error("Failed to allocate memory to construct Queue container");
-		}
-		count = 0;
+		destructInternalData();
+		back = front = 0;
+		free(data);
 	}
 
-	// uniform initialization -  Queue<float> arr = { 2.3, 2.4 ... }
+	// uniform initialization -  Queue<float> queue = { 2.3, 2.4 ... }
 	Queue(const std::initializer_list<type> & il)
 	{
-		s64 size = il.size();
+		s64 il_size = il.size();
 		capacity = INITIAL_CAPACITY;
-		if (size > capacity)
+		if (il_size > capacity)
 		{
-			capacity = size * 2;
+			capacity = il_size * 2;
 		}
 		data = (type*)malloc(capacity * sizeof(type));
 
-		count = 0;
+		back = front = 0;
 		for (auto & el : il)
 		{
-			new(data + count++) type(el);
+			new(data + back++) type(el);
 		}
 	}
 
-	// add type element to the end
+	// copy constructor
+	Queue(const Queue<type> & queue)
+	{
+		capacity = queue.capacity;
+		data = (type*) malloc(capacity * sizeof(type));
+		if (data == nullptr)
+		{
+			ERROR("Failed to allocate memory to copy Queue object's data");
+		}
+
+		s64 count = queue.size();
+		for (s64 i = 0; i < count; ++i)
+		{
+			new(data + i) type(queue.data[(queue.back + i) % queue.capacity]);
+		}
+		front = 0;
+		back = count;
+	}
+
+	// move constructor
+	Queue(Queue<type> && queue)
+	{
+		capacity = queue.capacity;
+		front = queue.front;
+		back = queue.back;
+		data = queue.data;
+
+		queue.data = nullptr;
+		queue.back = queue.front = queue.capacity = 0;
+	}
+
+	// copy/move assignment utilizing copy/move constructor by taking argument as value
+	Queue & operator=(Queue<type> queue)
+	{
+		// swap
+		s64 capacity_temp = capacity;
+		s64 front_temp = front;
+		s64 back_temp = back;
+		type* data_temp = data;
+
+		capacity = queue.capacity;
+		front = queue.front;
+		back = queue.back;
+		data = queue.data;
+
+		queue.capacity = capacity_temp;
+		queue.front = front_temp;
+		queue.back = back_temp;
+		queue.data = data_temp;
+		// queue going out of scope will destruct old Queue's object's data
+
+		return *this;
+	}
+
+	// add type element to the back
 	void enqueue(type el)
 	{
-		if (count == capacity)
+		if (size() == capacity - 1)
 		{
 			expandCapacity();
 		}
-		new(data + count++) type(std::move(el));
+		new(data + back) type(std::move(el));
+		back = (back + 1) % capacity;
 	}
 
-	inline bool isEmpty() const
+	// remove type element from the front
+	void dequeue()
 	{
-		return count == 0;
+		if (isEmpty()) ERROR("Can't remove from empty queue");
+
+		type result = std::move(data[front]);
+		data[front].~type();
+		front = (front + 1) % capacity;
+		return result;
 	}
 
-	inline s64 size() const
+	type peek()
 	{
-		return count;
+		if (isEmpty()) ERROR("Can't remove from empty queue");
+		return data[front];
 	}
+
+	void clear()
+	{
+		destructInternalData();
+		back = front = 0;
+	}
+
+	inline bool isEmpty() const { return front == back; }
+	inline s64 size() const { return (back - front + capacity) % capacity; }
 }
 
 

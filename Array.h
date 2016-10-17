@@ -172,6 +172,7 @@ public:
 	~Array()
 	{
 		destructInternalData();
+		count = 0;
 		free(data);
 	}
 
