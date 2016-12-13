@@ -12,39 +12,41 @@ typedef std::int32_t s32;
 typedef std::int64_t s64;
 
 
-enum class outOfThree { FIRST = 1, SECOND, THIRD };
 template <typename type>
-// returns -1 if a, 0 if b, +1 if c
-outOfThree medianOfThree(type & a, type & b, type & c)
+struct compare_less
 {
-	if (a > b)
+	constexpr bool operator()(const type & lhs, const type & rhs) const
+		{ return lhs < rhs; }
+};
+
+
+enum class outOfThree { FIRST = 1, SECOND = 2, THIRD = 3 };
+template <typename type, typename comparator = compare_less>
+outOfThree medianOfThree(type & a, type & b, type & c, comparator compare = compare_less())
+{
+	if (compare(a, b))
 	{
-		if (a < c)
-		{
-			return outOfThree::FIRST;
-		}
+		if (compare(b, c)) 		return outOfThree::SECOND;
 		else
 		{
-			if (b > c) return outOfThree::SECOND;
-			else 	   return outOfThree::THIRD;
+			if (compare(a, c)) 	return outOfThree::THIRD;
+			else				return outOfThree::FIRST;
 		}
 	}
 	else
 	{
-		if (b < c)
-		{
-			return outOfThree::SECOND;
-		}
+		if (compare(a, c)) 		return outOfThree::FIRST;
 		else
 		{
-			if (a > c) return outOfThree::FIRST;
-			else 	   return outOfThree::THIRD;
+			if (compare(b, c))	return outOfThree::THIRD;
+			else				return outOfThree::SECOND;
 		}
 	}
 }
 
-template <typename type>
-void insertionSort(Array<type> arr)
+
+template <typename type, typename comparator = compare_less>
+void insertionSort(Array<type> & arr, comparator compare = compare_less())
 {
 	s64 size = arr.size();
 	if (size <= 1) return;
@@ -53,31 +55,24 @@ void insertionSort(Array<type> arr)
 	{
 		type el = std::move(arr[i]);
 		s64 j = i - 1;
-		while (j >= 0 && arr[j] > el)
-		{
-			arr[j + 1] = std::move(arr[j]);
-			--j;
-		}
+		while (j >= 0 && compare(el, arr[j]))
+			arr[j + 1] = std::move(arr[j--]);
 		arr[j + 1] = std::move(el);
 	}
 }
 
-template <typename type>
-void quickSortWrapper(Array<type> & arr, s64 start, s64 end) // end included
+template <typename type, typename comparator = compare_less> // end included
+void quickSortWrapper(Array<type> & arr, s64 start, s64 end, comparator compare = compare_less())
 {
 	// base case
 	if (end <= start) return;
 
 	// choose pivot
 	s64 mid = start + (end - start) / 2;
-	switch (medianOfThree(arr[start], arr[mid], arr[end]))
+	switch (medianOfThree(arr[start], arr[mid], arr[end], compare))
 	{
-		case outOfThree::SECOND:
-			swap(arr[start], arr[mid]);
-			break;
-		case outOfThree::THIRD:
-			swap(arr[start], arr[end]);
-			break;
+		case outOfThree::SECOND: swap(arr[start], arr[mid]); break;
+		case outOfThree::THIRD: swap(arr[start], arr[end]); break;
 		case outOfThree::FIRST: break;
 	}
 	type & pivot = arr[start];
@@ -86,65 +81,62 @@ void quickSortWrapper(Array<type> & arr, s64 start, s64 end) // end included
 	s64 seperator = start + 1; // arr[start..seperator-1] < pivot and arr[seperator..end-1] >= pivot
 	for (s64 pos = start + 1; pos <= end; ++pos)
 	{
-		if (arr[pos] < pivot) swap(arr[seperator++], arr[pos]);
+		if (compare(arr[pos] < pivot)) swap(arr[seperator++], arr[pos]);
 	}
 	swap(arr[start], arr[seperator-1]);
 
 	// recursive case
-	quickSortWrapper(arr, start, seperator-2); // pivot position is seperator-1
-	quickSortWrapper(arr, seperator, end);
+	quickSortWrapper(arr, start, seperator-2, compare); // pivot position is seperator-1
+	quickSortWrapper(arr, seperator, end, compare);
 }
 
-template <typename type>
-void quickSort(Array<type> & arr)
-{
-	quickSortWrapper(arr, 0, arr.size() - 1);
-}
+template <typename type, typename comparator = compare_less>
+void quickSort(Array<type> & arr, comparator compare = compare_less()) 
+	{ quickSortWrapper(arr, 0, arr.size() - 1, compare); }
 
-template <typename type>
-void mergeSortWrapper(Array<type> & arr, Array<type> & aux, s64 start, s64 end) // end included
+template <typename type, typename comparator = compare_less> // end included
+void mergeSortWrapper(Array<type> & arr, Array<type> & aux, s64 start, s64 end, comparator compare = compare_less())
 {
 	if (start >= end) return;
 
 	s64 mid = start + (end - start) / 2;
-	mergeSortWrapper(arr, aux, start, mid);
-	mergeSortWrapper(arr, aux, mid + 1, end);
+	mergeSortWrapper(arr, aux, start, mid, compare);
+	mergeSortWrapper(arr, aux, mid + 1, end, compare);
 
-	// merge step
-	s64 lhs = start;
-	s64 rhs = mid + 1;
-	s64 len = end - start + 1;
-	for (s64 i = 0; i < len; ++i)
+	// optimize for when both sides are already sorted to skip merge
+	// if whole array is sorted, skipping merge makes sorting linear
+	if (compare(arr[mid+1], arr[mid]))
 	{
-		if (lhs == mid + 1)
+		// merge step
+		s64 lhs = start;
+		s64 rhs = mid + 1;
+		s64 len = end - start + 1;
+		for (s64 i = 0; i < len; ++i)
 		{
-			aux[i] = std::move(arr[rhs++]);
+			if (lhs == mid + 1)						aux[i] = std::move(arr[rhs++]);
+			else if (rhs > end) 					aux[i] = std::move(arr[lhs++]);
+			else if (compare(arr[rhs], arr[lhs]))	aux[i] = std::move(arr[rhs++]);
+			else 									aux[i] = std::move(arr[lhs++]);
 		}
-		else if (rhs > end)
-		{
-			aux[i] = std::move(arr[lhs++]);
-		}
-		else if (arr[lhs] < arr[rhs])
-		{
-			aux[i] = std::move(arr[lhs++]);
-		}
-		else
-		{
-			aux[i] = std::move(arr[rhs++]);
-		}
-	}
-	// transfer merged sides from auxiliary array to actual array
-	for (s64 i = 0; i < len; ++i)
-	{
-		arr[start + i] = std::move(aux[i]);
+		// transfer merged sides from auxiliary array back to actual array
+		for (s64 i = 0; i < len; ++i) arr[start + i] = std::move(aux[i]);
 	}
 }
 
-template <typename type>
-void mergeSort(Array<type> & arr)
+template <typename type, typename comparator = compare_less>
+void mergeSort(Array<type> & arr, comparator compare = compare_less())
 {
 	Array<type> aux(arr.size());
-	mergeSortWrapper(arr, aux, 0, arr.size() - 1);
+	mergeSortWrapper(arr, aux, 0, arr.size() - 1, compare);
+}
+
+template <typename type, typename comparator = compare_less>
+bool isSorted(const Array<type> & arr, comparator compare = compare_less())
+{
+	s64 size = arr.size();
+	for (s64 i = 0; i < size - 1; ++i)
+		if (compare(arr[i+1], arr[i])) return false;
+	return true;
 }
 
 template <typename type>
