@@ -36,7 +36,7 @@ class PriorityQueue
 
 	void exchange(s64 a, s64 b)
 	{
-		type temp = std::move(heap[a]);
+		Key temp = std::move(heap[a]);
 		heap[a] = std::move(heap[b]);
 		heap[b] = std::move(temp);
 	}
