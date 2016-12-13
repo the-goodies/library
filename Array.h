@@ -6,8 +6,6 @@
 #include "error.h"
 #include <iostream>
 
-
-
 typedef std::int8_t  s8;
 typedef std::int16_t s16;
 typedef std::int32_t s32;
@@ -44,11 +42,15 @@ class Array
 			data[i].~type();
 		}
 	}
-
-	void expandCapacity()
+	
+	// default -1 means that double capacity will be used
+	void expandCapacity(s64 capacity = -1)
 	{
-		capacity *= 2;
-		type *new_data = (type*) malloc(capacity * sizeof(type));
+		if (capacity > this->capacity) this->capacity = capacity;
+		else if (capacity == -1) this->capacity *= 2;
+		else return;
+
+		type *new_data = (type*) malloc(this->capacity * sizeof(type));
 		if (new_data == nullptr)
 		{
 			ERROR("Failed to allocate memory to expand Array object");
@@ -65,41 +67,8 @@ class Array
 		data = new_data;
 	}
 
-	// sort functions
-	// insertionSort
-	void sortIncreasing()
-	{
-		if (count <= 1) return;
-
-		for (s64 i = 1; i < count; ++i)
-		{
-			type el = std::move(data[i]);
-			s64 j = i - 1;
-			while (j >= 0 && data[j] > el)
-			{
-				data[j + 1] = std::move(data[j]);
-				--j;
-			}
-			data[j + 1] = std::move(el);
-		}
-	}
-
-	void sortDecreasing()
-	{
-		if (count <= 1) return;
-
-		for (s64 i = 1; i < count; ++i)
-		{
-			type el = std::move(data[i]);
-			s64 j = i - 1;
-			while (j >= 0 && el > data[j])
-			{
-				data[j + 1] = std::move(data[j]);
-				--j;
-			}
-			data[j + 1] = std::move(el);
-		}
-	}
+	inline static bool compare_less(const type & lhs, const type & rhs) { return lhs < rhs; }
+	inline static bool compare_equal(const type & lhs, const type & rhs) { return lhs == rhs; }
 
 public:
 
@@ -118,7 +87,7 @@ public:
 	// standard constructor just allocates memory, but does no object initialization (construction)
 	// this constructor allocates and initializes capacity amount of objects to given value (default if non given)
 	// it's more costly, but you can immediately use [] operator to get or set values within [0 : capacity) boundaries
-	Array(s64 capacity, type value = type())
+	Array(s64 capacity, const type & value = type())
 	{
 		if (capacity <= 0)
 		{
@@ -225,39 +194,41 @@ public:
 		return *this;
 	}
 
+	void reserve(s64 capacity)
+	{
+		if (capacity > this->capacity) expandCapacity(capacity);
+	}
+
 	// get or set element only through [] operator
 	type & operator[](s64 position) const
 	{
 		if (position < 0 || position >= count)
 		{
-			ERROR("%s (size %I64u) can't get element from %I64u position - out of range", typeid(*this).name(), this->count, position);
+			ERROR("%s (size %I64s) can't get element from %I64s position - out of range", typeid(*this).name(), this->count, position);
 		}
 		return data[position];
 	}
 
 	// begin of iterator for auto range based loop
-	type * begin()
-	{
-		return data;
-	}
+	type * begin() { return data; }
 
 	// end of iterator for auto range based loop
-	type * end()
-	{
-		return (data + count);
-	}
+	type * end() { return (data + count); }
 
 
-	// type object has to implement < and > (for reversed sort) operators
-	void sort(bool reversed = false)
+	// typename type has to implement < operators
+	// otherwhise have to explicitly give compare function of given type
+	void sort(bool (*compare)(const type&, const type&) = compare_less)
 	{
-		if (!reversed)
+		if (count <= 1) return;
+
+		for (s64 i = 1; i < count; ++i)
 		{
-			sortIncreasing();
-		}
-		else
-		{
-			sortDecreasing();
+			type el = std::move(data[i]);
+			s64 j = i - 1;
+			while (j >= 0 && compare(el, data[j]))
+				data[j + 1] = std::move(data[j--]);
+			data[j + 1] = std::move(el);
 		}
 	}
 
@@ -276,7 +247,7 @@ public:
 	{
 		if (position < 0 || position > count)
 		{
-			ERROR("%s (size %I64u) can't insert element to %I64u position - out of range", typeid(*this).name(), this->count, position);
+			ERROR("%s (size %I64s) can't insert element to %I64s position - out of range", typeid(*this).name(), this->count, position);
 		}
 		if (capacity == count) expandCapacity();
 
@@ -301,9 +272,7 @@ public:
 	void remove(s64 position, bool ordered = true)
 	{
 		if (position < 0 || position >= count)
-		{
-			ERROR("%s (size %I64u) can't remove element from %I64u position - out of range", typeid(*this).name(), this->count, position);
-		}
+			ERROR("%s (size %I64s) can't remove element from %I64s position - out of range", typeid(*this).name(), this->count, position);
 
 		if (ordered)
 		{
@@ -312,11 +281,33 @@ public:
 				data[i] = std::move(data[i + 1]);
 			}
 		}
-		else
-		{
-			data[position] = std::move(data[count - 1]);
-		}
+		else data[position] = std::move(data[count - 1]);
+
 		data[--count].~type();
+	}
+
+	// removes last element and returns it
+	type pop()
+	{
+		if (this->count == 0) ERROR("%s is empty container: can't pop element", typeid(*this).name());
+		type result = std::move(this->data[count-1]);
+		this->remove(count-1);
+		return result;
+	}
+
+	// returns the index of the first element which is equal to given value within start to end (not included)
+	// returns -1 if not found or provided range is not whithin container boundaries
+	// typename type has to implement == operators or provide comparison function
+	s64 find(const type & value, s64 start = 0, s64 end = -1, bool (*compare)(const type&, const type&) = compare_equal)
+	{
+		if (end == -1) end = this->count;
+		if (start < 0 || start >= this->count || end <= start) return -1;
+
+		for (s64 i = start; i < end; ++i)
+		{
+			if (compare(data[i], value)) return i;
+		}
+		return -1;
 	}
 
 	// returns copy of array from start to end (not included)
@@ -325,7 +316,7 @@ public:
 		if (end == -1) end = this->count;
 		if (start < 0 || start > this->count || end < start)
 		{
-			ERROR("Can't create subArray from %s (size %I64u), provided indexes %I64s - %I64s are out of range", typeid(*this).name(), this->count, start, end);
+			ERROR("Can't create subArray from %s (size %I64s), provided indexes %I64s - %I64s are out of range", typeid(*this).name(), this->count, start, end);
 		}
 
 		Array<type> result;
@@ -343,10 +334,44 @@ public:
 		count = 0;
 	}
 
-	inline s64 size() const
+	inline s64 size() const { return count; }
+	inline bool isEmpty() const { return count == 0; }
+
+	Array<type> & extend(const Array<type> & rhs)
 	{
-		return count;
+		for (const type & value : rhs)
+			this->insert(value);
+		return *this;
 	}
+
+	// appends rhs array to this and returns new array
+	Array<type> operator+(const Array<type> & rhs)
+	{
+		Array<type> result(*this);
+		return result.extend(rhs);
+	}
+
+	Array<type> & operator+=(const Array<type> & rhs) { return this->extend(rhs); }
+
+	Array<type> & operator+=(const type & value)
+	{
+		this->insert(value);
+		return *this;
+	}
+
+	bool operator==(const Array<type> & rhs) const
+	{
+		s64 size = this->size();
+		if (size != rhs.size()) return false;
+
+		for (s64 i = 0; i < size; ++i)
+		{
+			if (this[i] != rhs[i]) return false;
+		}
+		return true;
+	}
+
+	bool operator!=(const Array<type> & rhs) const { return !(*this == rhs); }
 
 	// fills output stream with objects info contained in Array
 	// those objects have to implement << operator in order to work
@@ -362,10 +387,10 @@ public:
 			return os;
 		}
 		// typeid(var).name() returns type name of var
-		os << typeid(arr).name() << " (size " << size << ") objects:\n";
+		os << typeid(arr).name() << " (size " << size << ") values: ";
 		for (s64 i = 0; i < size; ++i)
 		{
-			os << i << ") " << arr.data[i] << '\n';
+			os << arr.data[i] << " ";
 		}
 		return os;
 	}

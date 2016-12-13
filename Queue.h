@@ -27,7 +27,7 @@ class Queue
 	type *data; // container holding data
 
 	// will double everytime reaches limit
-	static const u32 INITIAL_CAPACITY = 64;
+	static const u32 INITIAL_CAPACITY = 20;
 
 	// private functions
 
@@ -45,7 +45,7 @@ void expandCapacity()
 	type *new_data = (type*) malloc(capacity * 2 * sizeof(type));
 	if (new_data == nullptr)
 	{
-		ERROR("Failed to allocate memory to expand Queue container");
+		ERROR("Failed to allocate %I64u bytes to expand Queue container", capacity * 2 * sizeof(type));
 	}
 	s64 count = this->size();
 	for (s64 i = 0; i < count; ++i)
@@ -72,7 +72,7 @@ public:
 		data = (type*) malloc(capacity * sizeof(type));
 		if (data == nullptr)
 		{
-			ERROR("Failed to allocate memory to construct Queue container");
+			ERROR("Failed to allocate %I64u bytes to construct Queue container", capacity * sizeof(type));
 		}
 		back = front = 0;
 	}
@@ -85,7 +85,7 @@ public:
 	}
 
 	// uniform initialization -  Queue<float> queue = { 2.3, 2.4 ... }
-	Queue(const std::initializer_list<type> & il)
+	Queue(std::initializer_list<type> il)
 	{
 		s64 il_size = il.size();
 		capacity = INITIAL_CAPACITY;
@@ -98,7 +98,7 @@ public:
 		back = front = 0;
 		for (auto & el : il)
 		{
-			new(data + back++) type(el);
+			new(data + back++) type(std::move(el));
 		}
 	}
 
@@ -109,7 +109,7 @@ public:
 		data = (type*) malloc(capacity * sizeof(type));
 		if (data == nullptr)
 		{
-			ERROR("Failed to allocate memory to copy Queue object's data");
+			ERROR("Failed to allocate %I64u bytes to copy Queue object's data", capacity * sizeof(type));
 		}
 
 		s64 count = queue.size();
@@ -167,8 +167,14 @@ public:
 		back = (back + 1) % capacity;
 	}
 
+	// synonym for enqueue
+	void insert(type el)
+	{
+		enqueue(std::move(el));
+	}
+
 	// remove type element from the front
-	void dequeue()
+	type dequeue()
 	{
 		if (isEmpty()) ERROR("Can't remove from empty queue");
 
@@ -176,6 +182,12 @@ public:
 		data[front].~type();
 		front = (front + 1) % capacity;
 		return result;
+	}
+
+	// synonym for dequeue
+	type get()
+	{
+		return dequeue();
 	}
 
 	type peek()
@@ -192,6 +204,26 @@ public:
 
 	inline bool isEmpty() const { return front == back; }
 	inline s64 size() const { return (back - front + capacity) % capacity; }
+
+	Queue<type> & operator+=(const type & el)
+	{
+		this->insert(el);
+		return *this;
+	}
+
+	// typename type has to support << operator in order to work
+	std::ostream & operator<(std::ostream & os, const Queue<type> & queue)
+	{
+		Queue<type> copy(*queue);
+		s64 size = copy.size();
+		os << typeid(arr).name() << " (size " << size << ") objects in queue order: ";
+
+		for (s64 i = 0; i < size; ++i)
+		{
+			os << copy.get() << " ";
+		}
+		return os;
+	}
 }
 
 
