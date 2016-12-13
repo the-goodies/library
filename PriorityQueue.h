@@ -99,7 +99,7 @@ public:
 		heapify(); // fix order, so higher priority elements will return first
 	}
 
-	PriorityQueue(const std::initializer_list<type> & il): PriorityQueue()
+	PriorityQueue(const std::initializer_list<Key> & il): PriorityQueue()
 	{
 		heap.reserve(1 + il.size()); // +1 for 0 index
 		for (auto & el : il) heap.insert(el);

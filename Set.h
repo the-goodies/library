@@ -255,9 +255,8 @@ public:
 
 
 	// uniform initialization -  Set<float> set = { 2.3, 2.4 ... }
-	Set(const std::initializer_list<type> & il):
-		root(nullptr), compare(compare_default), nodeCount(0)
-	{ for (auto & el : il) this->insert(el); }
+	Set(const std::initializer_list<type> & il): Set()
+		{ for (auto & el : il) this->insert(el); }
 
 	// copy constructor
 	Set(const Set<type> & set)
