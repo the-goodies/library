@@ -165,9 +165,9 @@ public:
 	// typename Key has to support << operator in order to work
 	friend std::ostream & operator<<(std::ostream & os, const PriorityQueue<Key> & PQ)
 	{
-		PriorityQueue<Key> copy(*PQ);
+		PriorityQueue<Key> copy(PQ);
 		s64 size = copy.size();
-		os << typeid(arr).name() << " (size " << size << ") objects in priority order: ";
+		os << typeid(PQ).name() << " (size " << size << ") objects in priority order: ";
 
 		for (s64 i = 0; i < size; ++i) os << copy.get() << ' ';
 		return os;
