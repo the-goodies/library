@@ -25,7 +25,7 @@ template <typename Key>
 class PriorityQueue
 {
 	Array<Key> heap; // holding minHeap in array starting from 1 element, leaving 0 index unused
-	int (*compare)(const Key&, const Key&); // returns 1 if 1st element is of higher priority than 2nd element
+	bool (*compare)(const Key&, const Key&); // returns true if 1st element is of higher priority than 2nd element
 
 
 	// STL library's implementation by default uses less comparison which results in maxHeap
@@ -85,18 +85,24 @@ class PriorityQueue
 public:
 
 	// constructor for empty minHeap
-	PriorityQueue(int (*cmp)(const Key & lhs, const Key & rhs) = compare_less): heap()
+	PriorityQueue(bool (*cmp)(const Key & lhs, const Key & rhs) = compare_less): heap()
 	{
 		heap.insert(Key()); // fill first element with default value which will not be used
 		compare = cmp;
 	}
 
 	// constructor from given Array container
-	PriorityQueue(const Array<Key> & arr, int (*cmp)(const Key & lhs, const Key & rhs) = compare_less): PriorityQueue(cmp)
+	PriorityQueue(const Array<Key> & arr, bool (*cmp)(const Key & lhs, const Key & rhs) = compare_less): PriorityQueue(cmp)
 	{
-		s64 arr_size = arr.size();
-		heap.reserve(1 + arr_size); // +1 for 0 index
-		for (s64 i = 0; i < arr_size; ++i) heap.insert(arr[i]);
+		heap.reserve(1 + arr.size()); // +1 for 0 index
+		for (auto & el : arr) heap.insert(el);
+		heapify(); // fix order, so higher priority elements will return first
+	}
+
+	PriorityQueue(const std::initializer_list<type> & il): PriorityQueue()
+	{
+		heap.reserve(1 + il.size()); // +1 for 0 index
+		for (auto & el : il) heap.insert(el);
 		heapify(); // fix order, so higher priority elements will return first
 	}
 
@@ -157,7 +163,7 @@ public:
 	}
 
 	// typename Key has to support << operator in order to work
-	std::ostream & operator<(std::ostream & os, const PriorityQueue<Key> & PQ)
+	friend std::ostream & operator<<(std::ostream & os, const PriorityQueue<Key> & PQ)
 	{
 		PriorityQueue<Key> copy(*PQ);
 		s64 size = copy.size();
