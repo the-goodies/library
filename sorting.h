@@ -1,15 +1,9 @@
 #ifndef _sorting_h
 #define _sorting_h
 
-#include <cstdint>
 #include <random>
-#include "utility.h" // swap function
 #include "Array.h"
-
-typedef std::int8_t  s8;
-typedef std::int16_t s16;
-typedef std::int32_t s32;
-typedef std::int64_t s64;
+#include "utility.h" // swap function
 
 
 template <typename type>

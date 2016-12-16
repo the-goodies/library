@@ -1,22 +1,10 @@
 #ifndef _priorityqueue_h
 #define _priorityqueue_h
 
-#include "Array.h"
-#include "error.h"
-#include <cstdint> // int8_t ... types
 #include <iostream>
+#include "Array.h"
+#include "utility.h"
 
-typedef std::int8_t  s8;
-typedef std::int16_t s16;
-typedef std::int32_t s32;
-typedef std::int64_t s64;
-
-typedef std::uint8_t  u8;
-typedef std::uint16_t u16;
-typedef std::uint32_t u32;
-typedef std::uint64_t u64;
-
-#define ERROR(MESSAGE, ...) error(__FILE__, __LINE__, MESSAGE, __VA_ARGS__)
 
 // PriorityQueue container which returns elements of type Key with highest priority first - defined by compare function
 // compare function compares two elements of typename Key and returns true if first element is of higher priority than second
