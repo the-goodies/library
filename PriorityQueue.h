@@ -5,21 +5,21 @@
 #include "Array.h"
 #include "utility.h"
 
+// STL library's implementation by default uses less comparison which results in maxHeap
+// even though it's convention, to me it's seems unintuitive (what do i know) so i reversed order
+// now default less comparison results in minHeap, if you want maxHeap, provide greater comparison function
+template <typename compareType>
+struct compare_less { bool operator()(const compareType & lhs, const compareType & rhs) { return lhs < rhs; }
+
 
 // PriorityQueue container which returns elements of type Key with highest priority first - defined by compare function
 // compare function compares two elements of typename Key and returns true if first element is of higher priority than second
 // compare function is given to constructor or default is used (typename Key has to implement < operator in default case)
-template <typename Key>
+template <typename Key, typename compareType = compare_less<Key>>
 class PriorityQueue
 {
 	Array<Key> heap; // holding minHeap in array starting from 1 element, leaving 0 index unused
-	bool (*compare)(const Key&, const Key&); // returns true if 1st element is of higher priority than 2nd element
-
-
-	// STL library's implementation by default uses less comparison which results in maxHeap
-	// even though it's convention, to me it's seems unintuitive (what do i know) so i reversed order
-	// now default less comparison results in minHeap, if you want maxHeap, provide greater comparison function
-	inline static bool compare_less(const Key & lhs, const Key & rhs) { return lhs < rhs; }
+	compareType compare; // returns true if 1st element is of higher priority than 2nd element
 
 
 	void exchange(s64 a, s64 b)
@@ -73,14 +73,13 @@ class PriorityQueue
 public:
 
 	// constructor for empty minHeap
-	PriorityQueue(bool (*cmp)(const Key & lhs, const Key & rhs) = compare_less): heap()
+	PriorityQueue(): heap(), compare()
 	{
 		heap.insert(Key()); // fill first element with default value which will not be used
-		compare = cmp;
 	}
 
 	// constructor from given Array container
-	PriorityQueue(const Array<Key> & arr, bool (*cmp)(const Key & lhs, const Key & rhs) = compare_less): PriorityQueue(cmp)
+	PriorityQueue(const Array<Key> & arr): PriorityQueue()
 	{
 		heap.reserve(1 + arr.size()); // +1 for 0 index
 		for (auto & el : arr) heap.insert(el);
