@@ -47,4 +47,25 @@ static void swap(type & a, type & b)
 	b = std::move(temp);
 }
 
+template <typename compareType>
+struct compare_less
+{
+	constexpr bool operator()(const compareType & lhs, const compareType & rhs) const
+		{ return lhs < rhs; }
+};
+
+template <typename compareType>
+struct compare_greater
+{
+	constexpr bool operator()(const compareType & lhs, const compareType & rhs) const
+		{ return lhs > rhs; }
+};
+
+template <typename compareType>
+struct compare_equal
+{
+	constexpr bool operator()(const compareType & lhs, const compareType & rhs) const
+		{ return lhs == rhs; }
+};
+
 #endif

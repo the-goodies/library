@@ -6,17 +6,9 @@
 #include "utility.h" // swap function
 
 
-template <typename type>
-struct compare_less
-{
-	constexpr bool operator()(const type & lhs, const type & rhs) const
-		{ return lhs < rhs; }
-};
-
-
 enum class outOfThree { FIRST = 1, SECOND = 2, THIRD = 3 };
-template <typename type, typename comparator = compare_less>
-outOfThree medianOfThree(type & a, type & b, type & c, comparator compare = compare_less())
+template <typename type, typename comparator = compare_less<type>>
+outOfThree medianOfThree(type & a, type & b, type & c, comparator compare = compare_less<type>())
 {
 	if (compare(a, b))
 	{
@@ -39,8 +31,8 @@ outOfThree medianOfThree(type & a, type & b, type & c, comparator compare = comp
 }
 
 
-template <typename type, typename comparator = compare_less>
-void insertionSort(Array<type> & arr, comparator compare = compare_less())
+template <typename type, typename comparator = compare_less<type>>
+void insertionSort(Array<type> & arr, comparator compare = compare_less<type>())
 {
 	s64 size = arr.size();
 	if (size <= 1) return;
@@ -50,13 +42,16 @@ void insertionSort(Array<type> & arr, comparator compare = compare_less())
 		type el = std::move(arr[i]);
 		s64 j = i - 1;
 		while (j >= 0 && compare(el, arr[j]))
-			arr[j + 1] = std::move(arr[j--]);
+		{
+			arr[j + 1] = std::move(arr[j]);
+			--j;
+		}
 		arr[j + 1] = std::move(el);
 	}
 }
 
-template <typename type, typename comparator = compare_less> // end included
-void quickSortWrapper(Array<type> & arr, s64 start, s64 end, comparator compare = compare_less())
+template <typename type, typename comparator = compare_less<type>> // end included
+void quickSortWrapper(Array<type> & arr, s64 start, s64 end, comparator compare = compare_less<type>())
 {
 	// base case
 	if (end <= start) return;
@@ -75,7 +70,7 @@ void quickSortWrapper(Array<type> & arr, s64 start, s64 end, comparator compare 
 	s64 seperator = start + 1; // arr[start..seperator-1] < pivot and arr[seperator..end-1] >= pivot
 	for (s64 pos = start + 1; pos <= end; ++pos)
 	{
-		if (compare(arr[pos] < pivot)) swap(arr[seperator++], arr[pos]);
+		if (compare(arr[pos], pivot)) swap(arr[seperator++], arr[pos]);
 	}
 	swap(arr[start], arr[seperator-1]);
 
@@ -84,12 +79,12 @@ void quickSortWrapper(Array<type> & arr, s64 start, s64 end, comparator compare 
 	quickSortWrapper(arr, seperator, end, compare);
 }
 
-template <typename type, typename comparator = compare_less>
-void quickSort(Array<type> & arr, comparator compare = compare_less()) 
+template <typename type, typename comparator = compare_less<type>>
+void quickSort(Array<type> & arr, comparator compare = compare_less<type>()) 
 	{ quickSortWrapper(arr, 0, arr.size() - 1, compare); }
 
-template <typename type, typename comparator = compare_less> // end included
-void mergeSortWrapper(Array<type> & arr, Array<type> & aux, s64 start, s64 end, comparator compare = compare_less())
+template <typename type, typename comparator = compare_less<type>> // end included
+void mergeSortWrapper(Array<type> & arr, Array<type> & aux, s64 start, s64 end, comparator compare = compare_less<type>())
 {
 	if (start >= end) return;
 
@@ -117,15 +112,15 @@ void mergeSortWrapper(Array<type> & arr, Array<type> & aux, s64 start, s64 end, 
 	}
 }
 
-template <typename type, typename comparator = compare_less>
-void mergeSort(Array<type> & arr, comparator compare = compare_less())
+template <typename type, typename comparator = compare_less<type>>
+void mergeSort(Array<type> & arr, comparator compare = compare_less<type>())
 {
 	Array<type> aux(arr.size());
 	mergeSortWrapper(arr, aux, 0, arr.size() - 1, compare);
 }
 
-template <typename type, typename comparator = compare_less>
-bool isSorted(const Array<type> & arr, comparator compare = compare_less())
+template <typename type, typename comparator = compare_less<type>>
+bool isSorted(const Array<type> & arr, comparator compare = compare_less<type>())
 {
 	s64 size = arr.size();
 	for (s64 i = 0; i < size - 1; ++i)
