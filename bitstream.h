@@ -2,7 +2,7 @@
 #define _bitstream_h
 
 #include <fstream>
-#include "lib/utility.h"
+#include "utility.h"
 
 
 /* Defines a classes for reading and writing one bit at a time to a stream
