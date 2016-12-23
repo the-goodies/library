@@ -6,9 +6,27 @@
 #include "utility.h" // swap function
 
 
+// type has to consist of non-negative integers
+// radix is upper bound of those non-negative integers - [0, radix)
+template <typename type, typename compareType = compare_less<type>>
+void countingSort(Array<type> & arr, u64 radix, compareType compare = compare_less<type>())
+{
+	Array<u64> count(radix + 1, 0);
+	Array<type> aux(arr.size(), 0);
+
+	// count the frequencies of numbers in arr
+	for (u64 i = 0; i < arr.size(); ++i) count[arr[i] + 1] += 1;
+	// transform frequencies to indices, starting position for each number in sorted array
+	for (u64 r = 1; i <= radix; ++r) count[r] += count[r-1];
+	// put values in sorted order in auxillary array
+	for (u64 i = 0; i < arr.size(); ++i) aux[count[arr[i]]++] = arr[i];
+	// copy back to real array
+	for (u64 i = 0; i < arr.size(); ++i) arr[i] = aux[i];
+}
+
 enum class outOfThree { FIRST = 1, SECOND = 2, THIRD = 3 };
-template <typename type, typename comparator = compare_less<type>>
-outOfThree medianOfThree(type & a, type & b, type & c, comparator compare = compare_less<type>())
+template <typename type, typename compareType = compare_less<type>>
+outOfThree medianOfThree(type & a, type & b, type & c, compareType compare = compare_less<type>())
 {
 	if (compare(a, b))
 	{
@@ -31,8 +49,8 @@ outOfThree medianOfThree(type & a, type & b, type & c, comparator compare = comp
 }
 
 
-template <typename type, typename comparator = compare_less<type>>
-void insertionSort(Array<type> & arr, comparator compare = compare_less<type>())
+template <typename type, typename compareType = compare_less<type>>
+void insertionSort(Array<type> & arr, compareType compare = compare_less<type>())
 {
 	s64 size = arr.size();
 	if (size <= 1) return;
@@ -50,8 +68,8 @@ void insertionSort(Array<type> & arr, comparator compare = compare_less<type>())
 	}
 }
 
-template <typename type, typename comparator = compare_less<type>> // end included
-void quickSortWrapper(Array<type> & arr, s64 start, s64 end, comparator compare = compare_less<type>())
+template <typename type, typename compareType = compare_less<type>> // end included
+void quickSortWrapper(Array<type> & arr, s64 start, s64 end, compareType compare = compare_less<type>())
 {
 	// base case
 	if (end <= start) return;
@@ -79,12 +97,12 @@ void quickSortWrapper(Array<type> & arr, s64 start, s64 end, comparator compare 
 	quickSortWrapper(arr, seperator, end, compare);
 }
 
-template <typename type, typename comparator = compare_less<type>>
-void quickSort(Array<type> & arr, comparator compare = compare_less<type>()) 
+template <typename type, typename compareType = compare_less<type>>
+void quickSort(Array<type> & arr, compareType compare = compare_less<type>()) 
 	{ quickSortWrapper(arr, 0, arr.size() - 1, compare); }
 
-template <typename type, typename comparator = compare_less<type>> // end included
-void mergeSortWrapper(Array<type> & arr, Array<type> & aux, s64 start, s64 end, comparator compare = compare_less<type>())
+template <typename type, typename compareType = compare_less<type>> // end included
+void mergeSortWrapper(Array<type> & arr, Array<type> & aux, s64 start, s64 end, compareType compare = compare_less<type>())
 {
 	if (start >= end) return;
 
@@ -112,15 +130,15 @@ void mergeSortWrapper(Array<type> & arr, Array<type> & aux, s64 start, s64 end, 
 	}
 }
 
-template <typename type, typename comparator = compare_less<type>>
-void mergeSort(Array<type> & arr, comparator compare = compare_less<type>())
+template <typename type, typename compareType = compare_less<type>>
+void mergeSort(Array<type> & arr, compareType compare = compare_less<type>())
 {
 	Array<type> aux(arr.size());
 	mergeSortWrapper(arr, aux, 0, arr.size() - 1, compare);
 }
 
-template <typename type, typename comparator = compare_less<type>>
-bool isSorted(const Array<type> & arr, comparator compare = compare_less<type>())
+template <typename type, typename compareType = compare_less<type>>
+bool isSorted(const Array<type> & arr, compareType compare = compare_less<type>())
 {
 	s64 size = arr.size();
 	for (s64 i = 0; i < size - 1; ++i)
