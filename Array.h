@@ -54,9 +54,6 @@ class Array
 		data = new_data;
 	}
 
-	inline static bool compare_less(const type & lhs, const type & rhs) { return lhs < rhs; }
-	inline static bool compare_equal(const type & lhs, const type & rhs) { return lhs == rhs; }
-
 public:
 
 	Array()
@@ -203,9 +200,10 @@ public:
 	type * end() { return (data + count); }
 
 
-	// typename type has to implement < operators
-	// otherwhise have to explicitly give compare function of given type
-	void sort(bool (*compare)(const type&, const type&) = compare_less)
+	// type has to implement < operator
+	// otherwhise have to explicitly give comparator of given type
+	template <typename compareType = compare_less<type>>
+	void sort(compareType compare = compare_less<type>())
 	{
 		if (count <= 1) return;
 
@@ -214,7 +212,10 @@ public:
 			type el = std::move(data[i]);
 			s64 j = i - 1;
 			while (j >= 0 && compare(el, data[j]))
-				data[j + 1] = std::move(data[j--]);
+			{
+				data[j + 1] = std::move(data[j]);
+				--j;
+			}
 			data[j + 1] = std::move(el);
 		}
 	}
@@ -284,8 +285,9 @@ public:
 
 	// returns the index of the first element which is equal to given value within start to end (not included)
 	// returns -1 if not found or provided range is not whithin container boundaries
-	// typename type has to implement == operators or provide comparison function
-	s64 find(const type & value, s64 start = 0, s64 end = -1, bool (*compare)(const type&, const type&) = compare_equal)
+	// typename type has to implement == operator or provide comparator of given type
+	template <typename compareType = compare_equal<type>>
+	s64 find(const type & value, s64 start = 0, s64 end = -1, compareType compare = compare_equal<type>())
 	{
 		if (end == -1) end = this->count;
 		if (start < 0 || start >= this->count || end <= start) return -1;
