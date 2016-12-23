@@ -7,7 +7,7 @@
 
 
 // Set implemented as Binary Search Tree
-template <typename type>
+template <typename type, typename compareType = compare_to<type>>
 class Set
 {
 	struct Node
@@ -23,17 +23,10 @@ class Set
 
 	Node* root;
 	// returns 1 if 1st element is bigger than 2nd, 0 if equal, -1 if 2nd is bigger than 1st
-	int (*compare)(const type&, const type&);
+	compareType compare;
 	s64 nodeCount; // size of Set
 
-	inline static int compare_default(const type & lhs, const type & rhs)
-	{
-		if (lhs > rhs) return 1;
-		else if (lhs == rhs) return 0;
-		else return -1; // lhs < rhs
-	}
-
-	static Node* findNode(Node* tree, const type & value, int(*compare)(const type&, const type&))
+	static Node* findNode(Node* tree, const type & value, compareType & compare)
 	{
 		if (tree == nullptr) return nullptr;
 
@@ -238,8 +231,7 @@ public:
 	};
 
 	// constructor
-	Set(int (*cmp)(const type&, const type&) = compare_default): 
-		root(nullptr), compare(cmp), nodeCount(0) { /* empty */ }
+	Set(): root(nullptr), compare(), nodeCount(0) { /* empty */ }
 
 
 	// uniform initialization -  Set<float> set = { 2.3, 2.4 ... }
