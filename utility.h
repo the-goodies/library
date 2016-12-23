@@ -68,4 +68,16 @@ struct compare_equal
 		{ return lhs == rhs; }
 };
 
+template <typename compareType>
+struct compare_to
+{
+	constexpr int operator()(const compareType & lhs, const compareType & rhs) const
+	{
+		if (lhs > rhs) return 1;
+		else if (lhs == rhs) return 0;
+		else return -1; // lhs < rhs
+	}
+};
+
+
 #endif
