@@ -17,7 +17,7 @@ void countingSort(Array<type> & arr, u64 radix, compareType compare = compare_le
 	// count the frequencies of numbers in arr
 	for (u64 i = 0; i < arr.size(); ++i) count[arr[i] + 1] += 1;
 	// transform frequencies to indices, starting position for each number in sorted array
-	for (u64 r = 1; i <= radix; ++r) count[r] += count[r-1];
+	for (u64 r = 1; r <= radix; ++r) count[r] += count[r-1];
 	// put values in sorted order in auxillary array
 	for (u64 i = 0; i < arr.size(); ++i) aux[count[arr[i]]++] = arr[i];
 	// copy back to real array
