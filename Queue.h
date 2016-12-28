@@ -24,24 +24,16 @@ class Queue
 void destructInternalData()
 {
 	s64 count = this->size();
-	for (s64 i = 0; i < count; ++i)
-	{
-		data[(back + i) % capacity].~type();
-	}
+	for (s64 i = 0; i < count; ++i) data[(back + i) % capacity].~type();
 }
 
 void expandCapacity()
 {
 	type *new_data = (type*) malloc(capacity * 2 * sizeof(type));
 	if (new_data == nullptr)
-	{
 		ERROR("Failed to allocate %I64u bytes to expand Queue container", capacity * 2 * sizeof(type));
-	}
 	s64 count = this->size();
-	for (s64 i = 0; i < count; ++i)
-	{
-		new(new_data + i) type(std::move(data[(back + i) % capacity]));
-	}
+	for (s64 i = 0; i < count; ++i) new(new_data + i) type(std::move(data[(back + i) % capacity]));
 	// just in case objects being moved only have copy constructor, so we have to explicitly destruct them afterwards
 	destructInternalData();
 	free(data);
@@ -61,9 +53,7 @@ public:
 		capacity = INITIAL_CAPACITY;
 		data = (type*) malloc(capacity * sizeof(type));
 		if (data == nullptr)
-		{
 			ERROR("Failed to allocate %I64u bytes to construct Queue container", capacity * sizeof(type));
-		}
 		back = front = 0;
 	}
 
@@ -79,17 +69,12 @@ public:
 	{
 		s64 il_size = il.size();
 		capacity = INITIAL_CAPACITY;
-		if (il_size > capacity)
-		{
-			capacity = il_size * 2;
-		}
+		if (il_size > capacity) capacity = il_size * 2;
+
 		data = (type*)malloc(capacity * sizeof(type));
 
 		back = front = 0;
-		for (auto & el : il)
-		{
-			new(data + back++) type(std::move(el));
-		}
+		for (auto & el : il) new(data + back++) type(std::move(el));
 	}
 
 	// copy constructor
@@ -98,15 +83,10 @@ public:
 		capacity = queue.capacity;
 		data = (type*) malloc(capacity * sizeof(type));
 		if (data == nullptr)
-		{
 			ERROR("Failed to allocate %I64u bytes to copy Queue object's data", capacity * sizeof(type));
-		}
 
 		s64 count = queue.size();
-		for (s64 i = 0; i < count; ++i)
-		{
-			new(data + i) type(queue.data[(queue.back + i) % queue.capacity]);
-		}
+		for (s64 i = 0; i < count; ++i) new(data + i) type(queue.data[(queue.back + i) % queue.capacity]);
 		front = 0;
 		back = count;
 	}
@@ -149,19 +129,13 @@ public:
 	// add type element to the back
 	void enqueue(type el)
 	{
-		if (size() == capacity - 1)
-		{
-			expandCapacity();
-		}
+		if (size() == capacity - 1) expandCapacity();
 		new(data + back) type(std::move(el));
 		back = (back + 1) % capacity;
 	}
 
 	// synonym for enqueue
-	void insert(type el)
-	{
-		enqueue(std::move(el));
-	}
+	void insert(type el) { enqueue(std::move(el)); }
 
 	// remove type element from the front
 	type dequeue()
@@ -175,10 +149,7 @@ public:
 	}
 
 	// synonym for dequeue
-	type get()
-	{
-		return dequeue();
-	}
+	type get() { return dequeue(); }
 
 	type peek()
 	{
@@ -202,19 +173,16 @@ public:
 	}
 
 	// typename type has to support << operator in order to work
-	std::ostream & operator<(std::ostream & os, const Queue<type> & queue)
+	friend std::ostream & operator<(std::ostream & os, const Queue<type> & queue)
 	{
 		Queue<type> copy(*queue);
 		s64 size = copy.size();
 		os << typeid(arr).name() << " (size " << size << ") objects in queue order: ";
 
-		for (s64 i = 0; i < size; ++i)
-		{
-			os << copy.get() << " ";
-		}
+		for (s64 i = 0; i < size; ++i) os << copy.get() << " ";
 		return os;
 	}
-}
+};
 
 
 

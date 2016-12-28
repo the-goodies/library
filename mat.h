@@ -55,7 +55,7 @@ namespace mat
 
 
 	// returns num^power
-	float pow(float num, int p = 2)
+	float powf(float num, int p = 2)
 	{
 		bool negative = false;
 		if (p == 0) return 1;
@@ -86,7 +86,7 @@ namespace mat
 	}
 
 	// taylor series similar to e^x
-	float pow(float num, float x)
+	float powf(float num, float x)
 	{
 		float term = 1;
 		float sum = 1;

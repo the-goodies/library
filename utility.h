@@ -71,7 +71,7 @@ struct compare_equal
 template <typename compareType>
 struct compare_to
 {
-	constexpr int operator()(const compareType & lhs, const compareType & rhs) const
+	int operator()(const compareType & lhs, const compareType & rhs) const
 	{
 		if (lhs > rhs) return 1;
 		else if (lhs == rhs) return 0;
