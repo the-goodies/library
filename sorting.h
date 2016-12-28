@@ -11,17 +11,51 @@
 template <typename type, typename compareType = compare_less<type>>
 void countingSort(Array<type> & arr, u64 radix, compareType compare = compare_less<type>())
 {
-	Array<u64> count(radix + 1, 0);
-	Array<type> aux(arr.size(), 0);
+	s64 size = arr.size();
+	if (size == 0) return;
+
+	Array<s64> count(radix + 1, 0);
+	Array<type> aux(size, 0);
 
 	// count the frequencies of numbers in arr
-	for (u64 i = 0; i < arr.size(); ++i) count[arr[i] + 1] += 1;
+	for (s64 i = 0; i < size; ++i) count[arr[i] + 1] += 1;
 	// transform frequencies to indices, starting position for each number in sorted array
-	for (u64 r = 1; r <= radix; ++r) count[r] += count[r-1];
+	for (s64 r = 1; r <= radix; ++r) count[r] += count[r-1];
 	// put values in sorted order in auxillary array
-	for (u64 i = 0; i < arr.size(); ++i) aux[count[arr[i]]++] = arr[i];
+	for (s64 i = 0; i < size; ++i) aux[count[arr[i]]++] = arr[i];
 	// copy back to real array
-	for (u64 i = 0; i < arr.size(); ++i) arr[i] = aux[i];
+	for (s64 i = 0; i < size; ++i) arr[i] = aux[i];
+}
+
+// all elements within arr have to be of the same length
+template <typename compareType = compare_less<type>>
+void LSDSort(Array<char*> & arr, compareType compare = compare_less<type>())
+{
+	s64 size = arr.size();
+	if (size == 0) return;
+
+	char* element = arr[0];
+	s64 length = -1;
+	while (element[++length] != '\0');
+
+	u16 radix = 256;
+	Array<s64> count(radix + 1, 0);
+	Array<char> aux(size, 0);
+
+	for (s64 c = length - 1; c >= 0; --c)
+	{
+		// count the frequencies of chars within c position of each element in arr
+		for (s64 i = 0; i < size; ++i) count[arr[i][c] + 1] += 1;
+		// transform frequencies to indices, starting position for each number in sorted array
+		for (s64 r = 1; r <= radix; ++r) count[r] += count[r-1];
+		// put values in sorted order in auxillary array
+		for (s64 i = 0; i < size; ++i) aux[count[arr[i][c]]++] = arr[i];
+		// copy back to real array
+		for (s64 i = 0; i < size; ++i) arr[i] = aux[i];
+
+		// clear count for next iteration
+		for (s64 r = 0; r <= radix; ++r) count[r] = 0;
+	}
 }
 
 enum class outOfThree { FIRST = 1, SECOND = 2, THIRD = 3 };
