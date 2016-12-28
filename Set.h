@@ -2,8 +2,11 @@
 #define _set_h
 
 #include <iostream>
+#include <iomanip>
 #include "Array.h"
+#include "Queue.h"
 #include "utility.h"
+#include "mat.h"
 
 
 // Set implemented as Binary Search Tree
@@ -26,7 +29,7 @@ class Set
 	compareType compare;
 	s64 nodeCount; // size of Set
 
-	static Node* findNode(Node* tree, const type & value, compareType & compare)
+	static Node* findNode(Node* tree, const type & value, const compareType & compare)
 	{
 		if (tree == nullptr) return nullptr;
 
@@ -404,24 +407,6 @@ public:
 
 
 
-	// fills output stream with objects info contained in a Set
-	// those objects have to implement << operator in order to work
-	friend std::ostream & operator<<(std::ostream & os, const Set<type> & set)
-	{
-		// typeid(var).name() returns type name of var
-		os << typeid(set).name() << " (size " << set.size() << ") values: ";
-		for (const type & value : set)
-		{
-			os << value << " ";
-		}
-		return os;
-	}
-
-
-
-
-
-
 
 
 
@@ -446,6 +431,239 @@ public:
 		heightWrapper(root, is_balanced);
 		return is_balanced;
 	}
+
+
+
+// print tree visualization
+private:
+
+	struct InfoNode
+	{
+		Node* node;
+		// depth and position count starts at 0
+		u32 depth;
+		u32 pos; // (2^depth)-1 last position
+
+		InfoNode(Node* tree, u32 depth, u32 pos):
+			node(tree), depth(depth), pos(pos) { /* empty */ }
+	};
+
+	// returns a grid (nodes within the same depth get the same row)
+	static Array<Array<InfoNode>> getNodeGrid(Node* tree)
+	{
+		Array<Array<InfoNode>> grid;
+		Array<InfoNode> level; // will contain all nodes at particular depth
+		InfoNode root(tree, 0, 0);
+
+		if (tree == nullptr)
+		{
+			level.insert(root);
+			grid.insert(level);
+			return grid;
+		}
+
+		u32 depth = 0; // current depth of traversing tree
+		u32 pos = 0; // current position at current depth
+		Queue<InfoNode> queue {root};
+		while (!queue.isEmpty())
+		{
+			InfoNode info = queue.get();
+			if (info.depth != depth)
+			{
+				grid.insert(level);
+				level.clear();
+				depth += 1;
+				pos = 0;
+			}
+			// fill level with empty infoNodes upto new node from queue 
+			while (pos < info.pos) level.insert(InfoNode(nullptr, depth, pos++));
+			// make pos point one past the added element
+			// so the next iteration will not fill empty node unnecessary
+			level.insert(info); ++pos;
+
+			// add next InfoNodes to the queue
+			if (info.node->left != nullptr)
+				queue.insert(InfoNode(info.node->left, info.depth + 1, info.pos * 2));
+			if (info.node->right != nullptr)
+				queue.insert(InfoNode(info.node->right, info.depth + 1, info.pos * 2 + 1));
+		}
+		grid.insert(level);
+		return grid;
+	}
+
+
+	static void printTree(Node* tree, std::ostream & os = std::cout)
+	{
+		// ammount of space node itself takes
+		const u32 NODE_SPACE = 7;
+		// spaces between nodes at max depth (lowest level)
+		const u32 NODE_DELIMITER_SPACE = 3;
+		// to distinguish where node starts and ends additional symbol
+		// within NODE_SPACE is used to indicate node boundaries
+		const char SYMBOL_NODE_BOUNDARY = '|';
+		// symbols used for lines and a connector between a line and a node
+		const char SYMBOL_LEFT_LINE = '|';
+		const char SYMBOL_LEFT_CONNECTOR = '|';
+		const char SYMBOL_RIGHT_LINE = '|';
+		const char SYMBOL_RIGHT_CONNECTOR = '|';
+
+		Array<Array<InfoNode>> grid = getNodeGrid(tree);
+		const u32 MAX_DEPTH = grid.size() - 1;
+
+		auto lineLength = [NODE_SPACE, NODE_DELIMITER_SPACE, MAX_DEPTH](u32 depth, u32 pos) -> u32
+		{
+			// counting depth from bottom, instead of from root
+			u32 level = MAX_DEPTH - depth;
+			u32 result = mat::pow(2, level) * (NODE_SPACE + NODE_DELIMITER_SPACE) / 2;
+			return result;
+		};
+
+		auto spaceBeforeLine = [NODE_SPACE, NODE_DELIMITER_SPACE, MAX_DEPTH](u32 depth, u32 pos) -> u32
+		{
+			// counting depth from bottom, instead of from root
+			u32 level = MAX_DEPTH - depth;
+			u32 result = mat::pow(2, level) * (NODE_SPACE + NODE_DELIMITER_SPACE);
+			if (pos == 0) return (result - NODE_DELIMITER_SPACE) / 2;
+			else		  return result - 1;
+		};
+
+		auto spaceBeforeUpConnector = [NODE_SPACE, NODE_DELIMITER_SPACE, MAX_DEPTH](u32 depth, u32 pos) -> u32
+		{
+			// counting depth from bottom, instead of from root
+			u32 level = MAX_DEPTH - depth;
+			u32 result = mat::pow(2, level) * (NODE_SPACE + NODE_DELIMITER_SPACE);
+			if (pos == 0) return (result - NODE_DELIMITER_SPACE) / 2;
+			else		  return result - 1;
+		};
+
+		auto spaceBeforeNode = [NODE_SPACE, NODE_DELIMITER_SPACE, MAX_DEPTH](u32 depth, u32 pos) -> u32
+		{
+			// counting depth from bottom, instead of from root
+			u32 level = MAX_DEPTH - depth;
+			u32 result = mat::pow(2, level) * (NODE_SPACE + NODE_DELIMITER_SPACE) - NODE_SPACE;
+			if (pos == 0) return (result - NODE_DELIMITER_SPACE) / 2;
+			else		  return result;
+		};
+
+		auto spaceBeforeDownConnector = [NODE_SPACE, NODE_DELIMITER_SPACE, MAX_DEPTH](u32 depth, u32 pos) -> u32
+		{
+			// counting depth from bottom, instead of from root
+			u32 level = MAX_DEPTH - depth;
+			u32 result = mat::pow(2, level) * (NODE_SPACE + NODE_DELIMITER_SPACE);
+			if (pos == 0) return (result - NODE_DELIMITER_SPACE) / 2 - 1;
+			else		  return result - 3;
+		};
+
+		auto draw = [&os](char c, u32 length)
+			{ for (u32 i = 0; i < length; ++i) os << c; };
+
+		auto drawNode = [&os, NODE_SPACE, SYMBOL_NODE_BOUNDARY](InfoNode & node)
+		{
+			if (node.node != nullptr)
+			{
+				os << SYMBOL_NODE_BOUNDARY;
+
+				// -2 for using BOUNDARY before and after
+				os << std::setw(NODE_SPACE - 2);
+				os << std::setfill('_');
+				os << std::left;
+				os << node.node->value;
+
+				os << SYMBOL_NODE_BOUNDARY;
+			}
+			else
+			{				 
+				for (u32 space = 0; space < NODE_SPACE; ++space)
+					os << ' ';
+			}
+		};
+
+		// how long the connector between node and line is
+		const u32 CONNECTOR_HEIGHT = 2;
+
+		// draw root level
+		draw(' ', spaceBeforeNode(0,0));
+		drawNode(grid[0][0]);
+		draw('\n', 1);
+		for (u32 time = 0; time < CONNECTOR_HEIGHT; ++time)
+		{
+			draw(' ', spaceBeforeDownConnector(0, 0));
+			draw(grid[0][0].node != nullptr ? SYMBOL_LEFT_CONNECTOR : ' ', 1);
+			draw(' ', 1);
+			draw(grid[0][0].node != nullptr ? SYMBOL_RIGHT_CONNECTOR : ' ', 1);
+			draw('\n', 1);
+		}
+
+		// draw all the rest levels after root
+		for (u32 depth = 1; depth <= MAX_DEPTH; ++depth)
+		{
+			u32 depth_size = grid[depth].size();
+			// draw lines between depth-1 and depth
+			for (u32 pos = 0; pos < depth_size; ++pos)
+			{
+				bool isNull = grid[depth][pos].node == nullptr;
+				if (pos % 2 == 0)
+				{
+					draw(' ', spaceBeforeLine(depth, pos));
+					draw(isNull ? ' ' : SYMBOL_LEFT_LINE, lineLength(depth, pos));
+				}
+				else
+				{
+					draw(' ', 1);
+					draw(isNull ? ' ' : SYMBOL_RIGHT_LINE, lineLength(depth, pos));
+				}
+			}
+			draw('\n', 1);
+
+			// draw up connectors between upper lines and below nodes
+			for (u32 time = 0; time < CONNECTOR_HEIGHT; ++time)
+			{
+				for (u32 pos = 0; pos < depth_size; ++pos)
+				{
+					draw(' ', spaceBeforeUpConnector(depth, pos));
+					bool isNull = grid[depth][pos].node == nullptr;
+					if (pos % 2 == 0)	draw(isNull ? ' ' : SYMBOL_LEFT_CONNECTOR, 1);
+					else				draw(isNull ? ' ' : SYMBOL_RIGHT_CONNECTOR, 1);
+				}
+				draw('\n', 1);
+			}
+
+			// draw nodes
+			for (u32 pos = 0; pos < depth_size; ++pos)
+			{
+				draw(' ', spaceBeforeNode(depth, pos));
+				drawNode(grid[depth][pos]);
+			}
+			draw('\n', 1);
+
+			// draw down connectors between upper nodes and below lines
+			for (u32 time = 0; time < CONNECTOR_HEIGHT; ++time)
+			{
+				for (u32 pos = 0; pos < depth_size; ++pos)
+				{
+					draw(' ', spaceBeforeDownConnector(depth, pos));
+					draw(grid[depth][pos].node != nullptr ? SYMBOL_LEFT_CONNECTOR : ' ', 1);
+					draw(' ', 1);
+					draw(grid[depth][pos].node != nullptr ? SYMBOL_RIGHT_CONNECTOR : ' ', 1);
+				}
+				draw('\n', 1);
+				if (depth == MAX_DEPTH) break;
+			}
+		}
+	}
+
+public:
+
+	// prints tree visualization
+	// those objects have to implement << operator in order to work
+	friend std::ostream & operator<<(std::ostream & os, const Set<type> & set)
+	{
+		printTree(set.root, os);
+		return os;
+	}
+
 };
+
+
 
 #endif
