@@ -60,34 +60,22 @@ public:
 	{
 		capacity = INITIAL_CAPACITY;
 		data = (type*) malloc(capacity * sizeof(type));
-		if (data == nullptr)
-		{
-			ERROR("Failed to allocate memory to construct Array object");
-		}
+		if (data == nullptr) ERROR("Failed to allocate memory to construct Array object");
 		count = 0;
 	}
-
 
 	// standard constructor just allocates memory, but does no object initialization (construction)
 	// this constructor allocates and initializes capacity amount of objects to given value (default if non given)
 	// it's more costly, but you can immediately use [] operator to get or set values within [0 : capacity) boundaries
 	Array(s64 capacity, const type & value = type())
 	{
-		if (capacity <= 0)
-		{
-			ERROR("Array constructor failed, given non positive as capacity, has to be >= 1");
-		}
+		if (capacity <= 0) ERROR("Array constructor failed, given non positive as capacity, has to be >= 1");
 		this->capacity = capacity;
 		data = (type*) malloc(capacity * sizeof(type));
-		if (data == nullptr)
-		{
-			ERROR("Failed to allocate memory to construct Array object");
-		}
+		if (data == nullptr) ERROR("Failed to allocate memory to construct Array object");
+
 		count = 0;
-		for (s64 i = 0; i < capacity; i++)
-		{
-			new(data + count++) type(value);	
-		}
+		for (s64 i = 0; i < capacity; i++) new(data + count++) type(value);
 	}
 
 	// uniform initialization -  Array<float> arr = { 2.3, 2.4 ... }
@@ -95,17 +83,11 @@ public:
 	{
 		s64 size = il.size();
 		capacity = INITIAL_CAPACITY;
-		if (size > capacity)
-		{
-			capacity = size * 2;
-		}
+		if (size > capacity) capacity = size * 2;
 		data = (type*)malloc(capacity * sizeof(type));
 
 		count = 0;
-		for (auto & el : il)
-		{
-			new(data + count++) type(el);
-		}
+		for (auto & el : il) new(data + count++) type(el);
 	}
 
 	// for Array<char> initialization, that could be used like string
@@ -134,16 +116,10 @@ public:
 	{
 		capacity = arr.capacity;
 		data = (type*) malloc(capacity * sizeof(type));
-		if (data == nullptr)
-		{
-			ERROR("Failed to allocate memory to copy Array object's data");
-		}
+		if (data == nullptr) ERROR("Failed to allocate memory to copy Array object's data");
 
 		count = arr.count;
-		for (s64 i = 0; i < count; ++i)
-		{
-			new(data + i) type(arr.data[i]);
-		}
+		for (s64 i = 0; i < count; ++i) new(data + i) type(arr.data[i]);
 	}
 
 	// move constructor
@@ -187,9 +163,7 @@ public:
 	type & operator[](s64 position) const
 	{
 		if (position < 0 || position >= count)
-		{
 			ERROR("%s (size %I64s) can't get element from %I64s position - out of range", typeid(*this).name(), this->count, position);
-		}
 		return data[position];
 	}
 
@@ -369,18 +343,12 @@ public:
 		s64 size = arr.count;
 		if (typeid(type) == typeid(char))
 		{
-			for (s64 i = 0; i < size; ++i)
-			{
-				os << arr.data[i];
-			}
+			for (s64 i = 0; i < size; ++i) os << arr.data[i];
 			return os;
 		}
 		// typeid(var).name() returns type name of var
 		os << typeid(arr).name() << " (size " << size << ") values: ";
-		for (s64 i = 0; i < size; ++i)
-		{
-			os << arr.data[i] << " ";
-		}
+		for (s64 i = 0; i < size; ++i) os << arr.data[i] << " ";
 		return os;
 	}
 };

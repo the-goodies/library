@@ -17,7 +17,7 @@ typedef std::uint16_t u16;
 typedef std::uint32_t u32;
 typedef std::uint64_t u64;
 
-
+#undef ERROR
 #define ERROR(MESSAGE, ...) error(__FILE__, __LINE__, MESSAGE, __VA_ARGS__)
 // reports msg to error stream and exits program
 // utilizes variable arguments (vargs)
