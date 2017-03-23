@@ -5,6 +5,48 @@
 #include "Array.h"
 #include "utility.h" // swap function
 
+// essentially just mergeSort with added counting how many inversions are done
+template <typename type, typename compareType = compare_less<type>> // end included
+s64 countingInversionsWrapper(Array<type> & arr, Array<type> & aux, s64 start, s64 end, compareType compare = compare_less<type>())
+{
+	if (start >= end) return 0;
+	
+	s64 mid = start + (end - start) / 2;
+	s64 left  = countingInversionsWrapper(arr, aux, start, mid, compare);
+	s64 right = countingInversionsWrapper(arr, aux, mid + 1, end, compare);
+
+
+	s64 middle = 0;
+	if (compare(arr[mid+1], arr[mid]))
+	{
+		s64 lhs = start;
+		s64 rhs = mid + 1;
+		s64 len = end - start + 1;
+		for (s64 i = 0; i < len; ++i)
+		{
+			if (lhs == mid + 1)						aux[i] = std::move(arr[rhs++]);
+			else if (rhs > end) 					aux[i] = std::move(arr[lhs++]);
+			else if (!compare(arr[rhs], arr[lhs]))	aux[i] = std::move(arr[lhs++]);
+			else 
+			{
+				aux[i] = std::move(arr[rhs++]);
+				middle += mid - lhs + 1;
+			}
+		}
+		// transfer merged sides from auxiliary array back to actual array
+		for (s64 i = 0; i < len; ++i) arr[start + i] = std::move(aux[i]);		
+	}
+	return left + middle + right;
+}
+
+
+template <typename type, typename compareType = compare_less<type>>
+s64 countingInversions(Array<type> & arr, compareType compare = compare_less<type>())
+{
+	Array<type> aux(arr.size());
+	return countingInversionsWrapper(arr, aux, 0, arr.size() - 1, compare);
+}
+
 
 // type has to consist of non-negative integers
 // radix is upper bound of those non-negative integers - [0, radix)
@@ -29,7 +71,7 @@ void countingSort(Array<type> & arr, u64 radix, compareType compare = compare_le
 
 // all elements within arr have to be of the same length
 template <typename compareType = compare_less<type>>
-void LSDSort(Array<char*> & arr, compareType compare = compare_less<type>())
+void LSDSort(Array<char*> & arr, compareType compare = compare_less<char*>())
 {
 	s64 size = arr.size();
 	if (size == 0) return;
