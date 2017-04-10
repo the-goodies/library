@@ -4,6 +4,7 @@
 #include "Array.h"
 #include "utility.h" // swap function
 
+
 // essentially just mergeSort with added counting how many inversions are done
 template <typename type, typename compareType = compare_less<type>> // end included
 s64 countingInversionsWrapper(Array<type> & arr, Array<type> & aux, s64 start, s64 end, compareType compare = compare_less<type>())
@@ -72,7 +73,8 @@ void countingSort(Array<type> & arr, s64 radix)
 
 // NOTE: doesnt WORK because you cant assign a value properly to Array<char*> 
 // all elements within arr have to be of the same length
-void LSDSort(Array<char*> & arr, s64 length)
+template <typename compareType = compare_less<type>>
+void LSDSort(Array<char*> & arr, compareType compare = compare_less<char*>())
 {
 	s64 size = arr.size();
 	if (size == 0) return;
