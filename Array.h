@@ -1,9 +1,9 @@
 #ifndef _array_h
 #define _array_h
-
 #include <iostream>
 #include <cstdlib> // malloc, free
 #include "utility.h"
+
 
 template <typename type>
 class Array
@@ -37,6 +37,9 @@ class Array
 		else if (capacity == -1) this->capacity *= 2;
 		else return;
 
+		if (((this->capacity * sizeof(type)) / this->capacity) != sizeof(type))
+			ERROR("Array capacity expansion failed, given capacity * type overflows");
+
 		type *new_data = (type*) malloc(this->capacity * sizeof(type));
 		if (new_data == nullptr)
 		{
@@ -54,6 +57,90 @@ class Array
 		data = new_data;
 	}
 
+	template <typename compareType = compare_less<type>> // end included
+	void quickSort(s64 start, s64 end, Random64 & rng, compareType compare = compare_less<type>())
+	{
+		// base case
+		if (end - start <= 20)
+		{
+			for (s64 i = start + 1; i <= end; ++i)
+			{
+				type el = std::move(data[i]);
+				s64 j = i - 1;
+				while (j >= start && compare(el, data[j]))
+				{
+					data[j + 1] = std::move(data[j]);
+					--j;
+				}
+				data[j + 1] = std::move(el);
+			}
+			return;
+		}
+
+		// choose pivot
+		s64 pivot_index = start + rng.random() % (end - start + 1);
+		swap(data[start], data[pivot_index]);
+		type pivot = data[start];
+
+		s64 lt = start;
+		s64 gt = end + 1;
+		while (true)
+		{
+			while (compare(data[++lt], pivot));
+			while (compare(pivot, data[--gt]));
+			if (lt >= gt) break;
+			swap(data[lt], data[gt]);
+		}
+		swap(data[start], data[gt]);
+
+		quickSort(start, gt - 1, rng, compare);
+		quickSort(gt + 1, end, rng, compare);
+	}
+
+	template <typename compareType = compare_less<type>> // end included
+	void mergeSort(type* aux, s64 start, s64 end, compareType compare = compare_less<type>())
+	{
+		if (end - start <= 200) 
+		{
+			for (s64 i = start + 1; i <= end; ++i)
+			{
+				type el = std::move(data[i]);
+				s64 j = i - 1;
+				while (j >= start && compare(el, data[j]))
+				{
+					data[j + 1] = std::move(data[j]);
+					--j;
+				}
+				data[j + 1] = std::move(el);
+			}
+			return;
+		}
+
+		s64 mid = start + (end - start) / 2;
+		mergeSort(aux, start, mid, compare);
+		mergeSort(aux, mid + 1, end, compare);
+
+		// optimize for when both sides are already sorted to skip merge
+		// if whole array is sorted, skipping merge makes sorting linear
+		if (compare(data[mid+1], data[mid]))
+		{
+			// merge step
+			s64 lhs = start;
+			s64 rhs = mid + 1;
+			s64 len = end - start + 1;
+			for (s64 i = 0; i < len; ++i)
+			{
+				if (lhs == mid + 1)						aux[i] = std::move(data[rhs++]);
+				else if (rhs > end) 					aux[i] = std::move(data[lhs++]);
+				else if (compare(data[rhs], data[lhs]))	aux[i] = std::move(data[rhs++]);
+				else 									aux[i] = std::move(data[lhs++]);
+			}
+			// transfer merged sides from auxiliary array back to actual array
+			for (s64 i = 0; i < len; ++i) data[start + i] = std::move(aux[i]);
+		}
+	}
+
+
 public:
 
 	Array()
@@ -69,7 +156,11 @@ public:
 	// it's more costly, but you can immediately use [] operator to get or set values within [0 : capacity) boundaries
 	Array(s64 capacity, const type & value = type())
 	{
-		if (capacity <= 0) ERROR("Array constructor failed, given non positive as capacity, has to be >= 1");
+		if (capacity <= 0)
+			ERROR("Array constructor failed, given non positive as capacity, has to be >= 1");
+		if (((capacity * sizeof(type)) / capacity) != sizeof(type))
+			ERROR("Array constructor failed, given capacity * type overflows");
+
 		this->capacity = capacity;
 		data = (type*) malloc(capacity * sizeof(type));
 		if (data == nullptr) ERROR("Failed to allocate memory to construct Array object");
@@ -163,7 +254,7 @@ public:
 	type & operator[](s64 position) const
 	{
 		if (position < 0 || position >= count)
-			ERROR("%s (size %I64s) can't get element from %I64s position - out of range", typeid(*this).name(), this->count, position);
+			ERROR("%s (size %d) can't get element from %d position - out of range", typeid(*this).name(), this->count, position);
 		return data[position];
 	}
 
@@ -173,26 +264,6 @@ public:
 	// end of iterator for auto range based loop
 	type * end() { return (data + count); }
 
-
-	// type has to implement < operator
-	// otherwhise have to explicitly give comparator of given type
-	template <typename compareType = compare_less<type>>
-	void sort(compareType compare = compare_less<type>())
-	{
-		if (count <= 1) return;
-
-		for (s64 i = 1; i < count; ++i)
-		{
-			type el = std::move(data[i]);
-			s64 j = i - 1;
-			while (j >= 0 && compare(el, data[j]))
-			{
-				data[j + 1] = std::move(data[j]);
-				--j;
-			}
-			data[j + 1] = std::move(el);
-		}
-	}
 
 	// insert move type element to the end
 	void insert(type el)
@@ -272,6 +343,46 @@ public:
 		}
 		return -1;
 	}
+
+	// randomly shuffles array
+	void shuffle()
+	{
+		thread_local Random64 rng;
+		const s64 size = this->count;
+		for (s64 pos = size - 1; pos > 0; --pos)
+		{
+			s64 rand_pos = rng.random() % (pos + 1);
+			swap(data[pos], data[rand_pos]);
+		}
+	}
+
+	template <typename compareType = compare_less<type>>
+	void sort(compareType compare = compare_less<type>())
+	{
+		// does a single pass through array and if no exchanges are made returns true
+		bool exchanged = false;
+		const s64 size = this->count;
+		for (s64 i = 0; i < size - 1; ++i)
+		{
+			if (compare(data[i+1], data[i]))
+			{
+				swap(data[i+1], data[i]);
+				exchanged = true;
+			}
+		}
+		if (!exchanged) return;
+
+		thread_local Random64 rng;
+		quickSort(0, size - 2, rng, compare);
+	}
+
+	template <typename compareType = compare_less<type>>
+	void stable_sort(compareType compare = compare_less<type>())
+	{
+		type* aux = new type[count];
+		mergeSort(aux, 0, count - 1, compare);
+		delete[] aux;
+	}	
 
 	// returns copy of array from start to end (not included)
 	Array<type> subArray(s64 start = 0, s64 end = -1) const
