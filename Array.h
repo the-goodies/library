@@ -24,32 +24,23 @@ class Array
 	void destructInternalData()
 	{
 		// call destructor manually on all objects, since allocation and construction is done seperately
-		for (s64 i = 0; i < count; ++i)
-		{
-			data[i].~type();
-		}
+		for (s64 i = 0; i < count; ++i) data[i].~type();
 	}
 	
 	// default -1 means that double capacity will be used
 	void expandCapacity(s64 capacity = -1)
 	{
 		if (capacity > this->capacity) this->capacity = capacity;
-		else if (capacity == -1) this->capacity *= 2;
+		else if (capacity == -1) this->capacity *= 2; 
 		else return;
 
 		if (((this->capacity * sizeof(type)) / this->capacity) != sizeof(type))
 			ERROR("Array capacity expansion failed, given capacity * type overflows");
 
 		type *new_data = (type*) malloc(this->capacity * sizeof(type));
-		if (new_data == nullptr)
-		{
-			ERROR("Failed to allocate memory to expand Array object");
-		}
+		if (new_data == nullptr) ERROR("Failed to allocate memory to expand Array object");
 
-		for (s64 i = 0; i < count; ++i)
-		{
-			new(new_data + i) type(std::move(data[i]));
-		}
+		for (s64 i = 0; i < count; ++i) new(new_data + i) type(std::move(data[i]));
 		// just in case objects being moved only have copy constructor, so we have to explicitly destruct them afterwards
 		destructInternalData();
 		free(data);
@@ -268,10 +259,7 @@ public:
 	// insert move type element to the end
 	void insert(type el)
 	{
-		if (count == capacity)
-		{
-			expandCapacity();
-		}
+		if (count == capacity) expandCapacity();
 		new(data + count++) type(std::move(el));
 	}
 
@@ -279,9 +267,7 @@ public:
 	void insert(type el, s64 position)
 	{
 		if (position < 0 || position > count)
-		{
 			ERROR("%s (size %I64s) can't insert element to %I64s position - out of range", typeid(*this).name(), this->count, position);
-		}
 		if (capacity == count) expandCapacity();
 
 		if (position == count)
@@ -292,11 +278,17 @@ public:
 
 		new(data + count) type(std::move(data[count-1]));
 		for (s64 i = count - 2; i >= position; --i)
-		{
 			data[i + 1] = std::move(data[i]);
-		}
 		data[position] = std::move(el);
 		count++;
+	}
+
+	// assigns given element to given range [start:end)
+	void fill(type el, s64 start, s64 end)
+	{
+		if (start > end || start < 0 || end > count)
+			ERROR("Array - fill method: given range [%d:%d) is wrong, array size is %d", start, end, count);
+		for (s64 i = start; i < end; ++i) data[i] = el;
 	}
 
 	// removes type element at specified position
@@ -310,9 +302,7 @@ public:
 		if (ordered)
 		{
 			for (s64 i = position; i < count - 1; ++i)
-			{
 				data[i] = std::move(data[i + 1]);
-			}
 		}
 		else data[position] = std::move(data[count - 1]);
 
@@ -338,9 +328,7 @@ public:
 		if (start < 0 || start >= this->count || end <= start) return -1;
 
 		for (s64 i = start; i < end; ++i)
-		{
 			if (compare(data[i], value)) return i;
-		}
 		return -1;
 	}
 
@@ -389,15 +377,10 @@ public:
 	{
 		if (end == -1) end = this->count;
 		if (start < 0 || start > this->count || end < start)
-		{
 			ERROR("Can't create subArray from %s (size %I64s), provided indexes %I64s - %I64s are out of range", typeid(*this).name(), this->count, start, end);
-		}
 
 		Array<type> result;
-		for (s64 i = start; i < end; ++i)
-		{
-			result.insert(this->data[i]);
-		}
+		for (s64 i = start; i < end; ++i) result.insert(this->data[i]);
 		return result;
 	}
 
@@ -439,9 +422,7 @@ public:
 		if (size != rhs.size()) return false;
 
 		for (s64 i = 0; i < size; ++i)
-		{
 			if (this[i] != rhs[i]) return false;
-		}
 		return true;
 	}
 
@@ -457,8 +438,7 @@ public:
 			for (s64 i = 0; i < size; ++i) os << arr.data[i];
 			return os;
 		}
-		// typeid(var).name() returns type name of var
-		os << typeid(arr).name() << " (size " << size << ") values: ";
+		os << "Array (size " << size << "): ";
 		for (s64 i = 0; i < size; ++i) os << arr.data[i] << " ";
 		return os;
 	}

@@ -65,7 +65,7 @@ namespace mat
 			p = -p;
 		}
 
-		float ans = 1;
+		float ans = 1.0f;
 		for (int i = 0; i < p; ++i)
 		{
 			ans *= num;
@@ -85,15 +85,15 @@ namespace mat
 		else return pow(num * num, p/2);
 	}
 
-	// taylor series similar to e^x
-	float powf(float num, float x)
-	{
-		float term = 1;
-		float sum = 1;
-		float ln_times_x = mat::ln(num) * x;
+	// // taylor series similar to e^x
+	// float powf(float num, float x)
+	// {
+	// 	float term = 1;
+	// 	float sum = 1;
+	// 	float ln_times_x = mat::ln(num) * x;
 
-		return exp(ln_times_x);
-	}
+	// 	return exp(ln_times_x);
+	// }
 
 
 
@@ -106,7 +106,7 @@ namespace mat
 		float epsilon = 0.00001f;
 		while (true)
 		{
-			float new_guess = (1.0f / p) * ((p - 1) * guess + (num / mat::pow(guess, p - 1)));
+			float new_guess = (1.0f / p) * ((p - 1) * guess + (num / mat::powf(guess, p - 1)));
 
 			if (mat::abs(new_guess - guess) <= epsilon) return new_guess;
 			guess = new_guess;
